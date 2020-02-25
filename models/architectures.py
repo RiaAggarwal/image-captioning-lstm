@@ -2,6 +2,8 @@ import torch
 import torch.nn as nn
 import torchvision.models as pretrained
 import numpy as np
+import torch.nn.functional as F
+from torch.utils.data import WeightedRandomSampler
 
 
 resNetComplete = pretrained.resnext50_32x4d(pretrained=True)
@@ -48,6 +50,23 @@ class DecoderLSTM(nn.Module):
 			inputs = inputs.unsqueeze(1)
 		word_ids = torch.stack(word_ids, 1)
 		return word_ids
+    
+    def generate_captions(self, logits, mode='deterministic', t=1):
+        if (mode == 'deterministic'):
+            _, predicted = logits.max(1)
+            word_id = predicted
+        
+        elif(mode == 'stochastic'):
+            soft_out = F.softmax(logits/t, dim=1)
+            word_id = WeightedRandomSampler(torch.squeeze(soft_out), 1) #get only one sample. change it to get more samples
+        
+        return word_id
+            
+            
+            
+            
+            
+        
 
 # e = EncoderCNN(300)
 # output = e(torch.zeros(3, 3, 224, 224))
