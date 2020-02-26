@@ -20,8 +20,8 @@ def main():
 	params = list(list(encoder.parameters()) + list(decoder.parameters()))
 	optimizer = torch.optim.Adam(params, lr=arguments['learning_rate'])
 
-	trainDataloader = get_loader(arguments['train_image_dir'], arguments['train_json_path'], arguments['vocabulary'], arguments['transforms'], arguments['batch_size'], shuffle=True, arguments['num_workers'])
-	valDataloader = get_loader(arguments['val_image_dir'], arguments['train_json_path'], arguments['vocabulary'], arguments['transforms'], arguments['batch_size'], shuffle=True, arguments['num_workers'])
+	trainDataloader = get_loader(arguments['train_image_ids'], arguments['train_json_path'], arguments['vocabulary'], arguments['transforms'], arguments['batch_size'], shuffle=True, arguments['num_workers'])
+	valDataloader = get_loader(arguments['val_image_ids'], arguments['train_json_path'], arguments['vocabulary'], arguments['transforms'], arguments['batch_size'], shuffle=True, arguments['num_workers'])
 
 	trainLosses = []
 	valLosses = []
