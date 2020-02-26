@@ -1,5 +1,5 @@
 import torch.nn as nn
-
+import pickle
 baseDataPath = './data/'
 def gD(dir):
 	return baseDataPath + dir
@@ -28,10 +28,10 @@ train_ids = get_ids('./data/train_ids.txt')
 val_ids = get_ids('./data/val_ids.txt')
 test_ids = get_ids('./data/test_ids.txt')
 
-from architectures import EncoderCNN, DecoderLSTM
+from models.architectures import EncoderCNN, DecoderLSTM
 
-
-vocab_path = './word_to_idx.p'
+vocab = ''
+vocab_path = './vocab/word_to_idx.p'
 with open(vocab_path, 'rb') as f:
 	vocab = pickle.load(f)
 
@@ -39,7 +39,7 @@ arguments = {
 
 	'epochs' : 1000,
 
-	'batch_size' : 32,
+	'batch_size' : 2,
 
 	'num_workers' : 4,
 
@@ -79,5 +79,6 @@ arguments = {
 
 	'transforms' : transforms_,
 
+	'root' : '/datasets/COCO-2015/train2014/'
 
 }

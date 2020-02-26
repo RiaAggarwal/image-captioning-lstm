@@ -6,14 +6,14 @@ import pickle
 import numpy as np
 import nltk
 from PIL import Image
-from build_vocab import Vocabulary
+# from build_vocab import Vocabulary
 from pycocotools.coco import COCO
 import random
 
 class CocoDataset(data.Dataset):
     """COCO Custom Dataset compatible with torch.utils.data.DataLoader."""
 
-    def _init_(self, root, json, ids, vocab_dict, transform=None):
+    def __init__(self, root, json, ids, vocab_dict, transform=None):
         """Set the path for images, captions and vocabulary wrapper.
 
         Args:
@@ -28,12 +28,12 @@ class CocoDataset(data.Dataset):
         self.vocab_dict = vocab_dict
         self.transform = transform
 
-    def _getitem_(self, index):
+    def __getitem__(self, index):
         """Returns one data pair (image and caption)."""
         coco = self.coco
         vocab_dict = self.vocab_dict
         ann_id = self.ids[index]
-        rand_idx = random.randint(0,len(coco.imgToAnns[ann_id]))
+        rand_idx = random.randint(0,len(coco.imgToAnns[ann_id])-1)
         caption = coco.imgToAnns[ann_id][rand_idx]['caption']
         img_id = coco.imgToAnns[ann_id][rand_idx]['image_id']
         path = coco.loadImgs(img_id)[0]['file_name']
@@ -48,12 +48,12 @@ class CocoDataset(data.Dataset):
         #dictionary replace 
         
         caption.append(vocab_dict.get('<start>'))
-        caption.extend([vocab_dict.get(token) for token in tokens])
+        caption.extend([vocab_dict.get(token, 3) for token in tokens]) #default to <unk>(idx:3)
         caption.append(vocab_dict.get('<end>'))
         target = torch.Tensor(caption)
         return image, target
 
-    def _len_(self):
+    def __len__(self):
         return len(self.ids)
 
 
@@ -87,7 +87,7 @@ def collate_fn(data):
     for i, cap in enumerate(captions):
         end = lengths[i]
         targets[i, :end] = cap[:end]
-    return images, packed_targets, lengths
+    return images, targets, lengths
 
 
 def get_loader(root, json, ids, vocab, transform, batch_size, shuffle, num_workers):

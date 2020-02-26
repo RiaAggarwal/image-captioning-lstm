@@ -51,16 +51,16 @@ class DecoderLSTM(nn.Module):
 		word_ids = torch.stack(word_ids, 1)
 		return word_ids
     
-    def generate_captions(self, logits, mode='deterministic', t=1):
-        if (mode == 'deterministic'):
-            _, predicted = logits.max(1)
-            word_id = predicted
+	def generate_captions(self, logits, mode='deterministic', t=1):
+		if (mode == 'deterministic'):
+			_, predicted = logits.max(1)
+			word_id = predicted
         
-        elif(mode == 'stochastic'):
-            soft_out = F.softmax(logits/t, dim=1)
-            word_id = WeightedRandomSampler(torch.squeeze(soft_out), 1) #get only one sample. change it to get more samples
+		elif(mode == 'stochastic'):
+			soft_out = F.softmax(logits/t, dim=1)
+			word_id = WeightedRandomSampler(torch.squeeze(soft_out), 1) #get only one sample. change it to get more samples
         
-        return word_id
+		return word_id
             
             
             
