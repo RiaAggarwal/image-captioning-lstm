@@ -114,6 +114,8 @@ class Experiment(object):
         os.makedirs(output_dir, exist_ok=True)
         checkpoint_path = os.path.join(output_dir, "checkpoint.pth.tar")
         config_path = os.path.join(output_dir, "config.txt")
+        bestmodel_path = os.path.join(output_dir, "bestmodel.pth.tar")
+        bestmodel_config_path = os.path.join(output_dir, "bestmodel_config.txt")
 
         # Transfer all local arguments/variables into attributes
         locs = {k: v for k, v in locals().items() if k is not 'self'}
@@ -180,6 +182,12 @@ class Experiment(object):
         torch.save(self.state_dict(), self.checkpoint_path)
         with open(self.config_path, 'w') as f:
             print(self, file=f)
+    
+    def save_bestmodel(self):
+        """Saves the best experiment on disk"""
+        torch.save(self.state_dict(), self.bestmodel_path)
+        with open(self.bestmodel_config_path, 'w') as f:
+            print(self, file=f)        
 
     def load(self):
         """Loads the experiment from the last checkpoint saved on disk."""
@@ -210,6 +218,8 @@ class Experiment(object):
         self.stats_manager.init()
         start_epoch = self.epoch
         device = self.device
+        min_val_loss = 1000
+        
         print("Start/Continue training from epoch {}".format(start_epoch))
         if plot is not None:
             plot(self)
@@ -238,13 +248,21 @@ class Experiment(object):
                 
                 with torch.no_grad():
                     self.stats_manager.accumulate(loss.item())
-                    print("loss for batch",(idx, loss.item()))
+                    #print("loss for batch",(idx, loss.item()))
                     
             if not self.perform_validation_during_training:
                 self.history.append(self.stats_manager.summarize())
             else:
+                train_loss = self.stats_manager.summarize() #don't change the order
+                val_loss = self.evaluate() #don't change the order
                 self.history.append(
-                    (self.stats_manager.summarize(), self.evaluate()))
+                    (train_loss, val_loss))
+                print('The Train loss is', train_loss)
+                print('The Val loss is', val_loss)
+                if(val_loss < min_val_loss):
+                    min_val_loss = val_loss
+                    self.save_bestmodel()
+                    print('Best model saved with Val loss', min_val_loss)
             print("Epoch {} (Time: {:.2f}s)".format(
                 self.epoch, time.time() - s))
             self.save()
@@ -275,7 +293,7 @@ class Experiment(object):
                 
                 loss = self.criterion(decoderOutputs, targets) ##Need to figure out
                 self.stats_manager.accumulate(loss.item())
-                print("Val loss for batch",(idx, loss.item()))
+                #print("Val loss for batch",(idx, loss.item()))
 
         self.encoder.train()
         self.decoder.train()
