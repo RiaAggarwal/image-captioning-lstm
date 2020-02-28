@@ -228,8 +228,8 @@ class Experiment(object):
             self.stats_manager.init()
             for idx, (images, captions, lengths) in enumerate(self.train_loader):
                 
-                if(idx > 150): #only for testing comment out for anything else
-                    break
+#                 if(idx > 150): #only for testing comment out for anything else
+#                     break
             
                 images = images.to(device)
                 captions = captions.to(device)
@@ -281,8 +281,8 @@ class Experiment(object):
         device = self.device
         with torch.no_grad():
             for idx, (images, captions, lengths) in enumerate(self.val_loader):
-                if(idx > 50): #only for testing comment out for anything else
-                    break
+#                 if(idx > 50): #only for testing comment out for anything else
+#                     break
                 
                 images = images.to(device)
                 captions = captions.to(device)
