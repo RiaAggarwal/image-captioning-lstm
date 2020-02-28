@@ -35,7 +35,7 @@ vocab_path = './vocab/word_to_idx.p'
 with open(vocab_path, 'rb') as f:
 	vocab = pickle.load(f)
 
-arguments = {
+args = {
 
 	'epochs' : 1000,
 
@@ -64,6 +64,8 @@ arguments = {
 	'loss_criterion' : nn.CrossEntropyLoss(),
 
 	'learning_rate' : 0.001,
+    
+    'beta' : 0.9,
 
 	'train_image_ids' : train_ids,
 

@@ -5,7 +5,7 @@ from torch import nn
 import torch.utils.data as td
 from abc import ABC, abstractmethod
 from data_loader import get_loader
-from config import arguments
+from config import args
 from torch.nn.utils.rnn import pack_padded_sequence
 from models.architectures import *
 
@@ -102,8 +102,8 @@ class Experiment(object):
                  output_dir=None, perform_validation_during_training=False):
 
         # Define data loaders
-        train_loader = get_loader(arguments['root'], arguments['train_json_path'], arguments['train_image_ids'],arguments['vocabulary'], arguments['transforms'], arguments['batch_size'], True, arguments['num_workers'])
-        val_loader = get_loader(arguments['root'], arguments['train_json_path'], arguments['val_image_ids'], arguments['vocabulary'], arguments['transforms'], arguments['batch_size'], True, arguments['num_workers'])
+        train_loader = get_loader(args['root'], args['train_json_path'], args['train_image_ids'],args['vocabulary'], args['transforms'], args['batch_size'], True, args['num_workers'])
+        val_loader = get_loader(args['root'], args['train_json_path'], args['val_image_ids'], args['vocabulary'], args['transforms'], args['batch_size'], True, args['num_workers'])
 
         # Initialize history
         history = []
