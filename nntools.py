@@ -1,5 +1,4 @@
 import os
-import time
 import torch
 from torch import nn
 import torch.utils.data as td
@@ -8,6 +7,12 @@ from data_loader import get_loader
 from config import args
 from torch.nn.utils.rnn import pack_padded_sequence
 from models.architectures import *
+from matplotlib import pyplot as plt
+from evaluate_captions import evaluate_captions
+import sys
+import json
+from time import time
+from pprint import pprint
 
 class StatsManager(object):
     """
@@ -34,7 +39,7 @@ class StatsManager(object):
         self.running_loss = 0
         self.number_update = 0
 
-    def accumulate(self, loss, x=None, y=None, d=None):
+    def accumulate(self, loss, num, x=None, y=None, d=None):
         """Accumulate statistics
 
         Though the arguments x, y, d are not used in this implementation, they
@@ -48,11 +53,12 @@ class StatsManager(object):
             d (Tensor): the desired output for the last update.
         """
         self.running_loss += loss
-        self.number_update += 1
+        self.number_update += num
 
     def summarize(self):
         """Compute statistics based on accumulated ones"""
         return self.running_loss / self.number_update
+
 
 
 class Experiment(object):
@@ -102,11 +108,25 @@ class Experiment(object):
                  output_dir=None, perform_validation_during_training=False):
 
         # Define data loaders
-        train_loader = get_loader(args['root'], args['train_json_path'], args['train_image_ids'],args['vocabulary'], args['transforms'], args['batch_size'], True, args['num_workers'])
-        val_loader = get_loader(args['root'], args['train_json_path'], args['val_image_ids'], args['vocabulary'], args['transforms'], args['batch_size'], True, args['num_workers'])
-
+        train_loader = get_loader(arguments['root'], arguments['train_json_path'], arguments['train_image_ids'],arguments['vocabulary'], arguments['transforms'], arguments['batch_size'], True, arguments['num_workers'])
+        val_loader = get_loader(arguments['root'], arguments['train_json_path'], arguments['val_image_ids'], arguments['vocabulary'], arguments['transforms'], arguments['batch_size'], False, arguments['num_workers'])
+        test_loader = get_loader(arguments['root_'], arguments['test_json_path'], arguments['test_image_ids'], arguments['vocabulary'], arguments['transforms'], arguments['batch_size'], False, arguments['num_workers'])
         # Initialize history
-        history = []
+        history = {
+            'losses' : [],
+            'val_perplexity' : [],
+            'test_perplexity' : [],
+            'test' : {
+                'bleu1' : [],
+                'bleu4' : []
+            },
+            'val' : {
+                'bleu1' : [],
+                'bleu4' : []
+            },
+            'best_val' : 10000.0,
+            'best_epoch' : -1
+        }
 
         # Define checkpoint paths
         if output_dir is None:
@@ -116,6 +136,17 @@ class Experiment(object):
         config_path = os.path.join(output_dir, "config.txt")
         bestmodel_path = os.path.join(output_dir, "bestmodel.pth.tar")
         bestmodel_config_path = os.path.join(output_dir, "bestmodel_config.txt")
+        plot_path = os.path.join(output_dir, "loss_plot.png")
+        # self.scores = {
+        #     'test' : {
+        #         'bleu1' : 1.0,
+        #         'bleu4' : 1.0
+        #     },
+        #     'val' : {
+        #         'bleu1' : 1.0,
+        #         'bleu4' : 1.0
+        #     }
+        # }
 
         # Transfer all local arguments/variables into attributes
         locs = {k: v for k, v in locals().items() if k is not 'self'}
@@ -135,7 +166,7 @@ class Experiment(object):
     @property
     def epoch(self):
         """Returns the number of epochs already performed."""
-        return len(self.history)
+        return len(self.history['losses'])
 
     def setting(self):
         """Returns the setting of the experiment."""
@@ -196,6 +227,26 @@ class Experiment(object):
         self.load_state_dict(checkpoint)
         del checkpoint
 
+    def load_bestmodel(self):
+        bestmodel = torch.load(self.bestmodel_path,
+                                map_location=self.device)
+        self.load_state_dict(bestmodel)
+        del bestmodel
+
+    def plot(self):
+        #plots the
+        trainLosses, valLosses = zip(*self.history['losses'])
+        base = [i+1 for i in list(range(len(trainLosses)))]
+        plt.figure()
+        plt.plot(base, trainLosses)
+        plt.plot(base, valLosses)
+        plt.gca().legend(('train','validation'))
+        plt.xlabel('Epochs')
+        plt.ylabel('Loss')
+        plt.title('Loss vs Epochs')
+        plt.savefig(self.plot_path)
+
+
     def run(self, num_epochs, plot=None):
         """Runs the experiment, i.e., trains the network using backpropagation
         based on the optimizer and the training set. Also performs statistics at
@@ -218,19 +269,23 @@ class Experiment(object):
         self.stats_manager.init()
         start_epoch = self.epoch
         device = self.device
-        min_val_loss = 1000
+        min_val_loss = self.history['best_val']
         
         print("Start/Continue training from epoch {}".format(start_epoch))
         if plot is not None:
             plot(self)
         for epoch in range(start_epoch, num_epochs):
-            s = time.time()
+            s = time()
             self.stats_manager.init()
-            for idx, (images, captions, lengths) in enumerate(self.train_loader):
+            for idx, (images, captions, lengths, imgIds) in enumerate(self.train_loader):
                 
 #                 if(idx > 150): #only for testing comment out for anything else
 #                     break
-            
+                # if(idx > 15):
+                #     break
+                #print('here')
+                if(list(images.size())[0] == 1):
+                    continue
                 images = images.to(device)
                 captions = captions.to(device)
                 targets = pack_padded_sequence(captions, lengths, batch_first=True)[0]
@@ -240,37 +295,87 @@ class Experiment(object):
                 
                 imageFeatures = self.encoder.forward(images)
                 decoderOutputs = self.decoder.forward(imageFeatures, captions, lengths)
-                
+                #print('train : ', (decoderOutputs.size(), targets.size()))
                 loss = self.criterion(decoderOutputs, targets)
                 loss.backward()
                 
                 self.optimizer.step()
                 
                 with torch.no_grad():
-                    self.stats_manager.accumulate(loss.item())
+                    self.stats_manager.accumulate(loss.item(), list(images.size())[0])
                     #print("loss for batch",(idx, loss.item()))
-                    
+            #print('here')
+            print('Time taken for train : ', time()-s)    
             if not self.perform_validation_during_training:
                 self.history.append(self.stats_manager.summarize())
             else:
-                train_loss = self.stats_manager.summarize() #don't change the order
-                val_loss = self.evaluate() #don't change the order
-                self.history.append(
-                    (train_loss, val_loss))
-                print('The Train loss is', train_loss)
-                print('The Val loss is', val_loss)
+                #train_loss = self.stats_manager.summarize() #don't change the order
+                train_loss = self.stats_manager.summarize()
+                start = time()
+                val_loss, perplexity = self.evaluate(mode='val', generate=False) #don't change the order
+                end = time()
+                print('Time taken for validation : ', end-start)
+                print('Val perplexity at ', epoch, ' : ' , perplexity)
+                print('Val Loss at ', epoch, ' : ' , val_loss)
+                print('Train Loss at ', epoch, ' : ' , train_loss)
+                self.history['losses'].append((train_loss, val_loss))
+                self.history['val_perplexity'].append(perplexity)
                 if(val_loss < min_val_loss):
                     min_val_loss = val_loss
                     self.save_bestmodel()
+                    self.history['best_val'] = min_val_loss
+                    self.history['best_epoch'] = epoch
                     print('Best model saved with Val loss', min_val_loss)
-            print("Epoch {} (Time: {:.2f}s)".format(
-                self.epoch, time.time() - s))
+                    start = time()
+                    test_loss, perplexity = self.evaluate(mode='test', generate=True)
+                    end = time()
+                    print('Time taken for test : ', end-start)
+                    self.history['test_perplexity'].append(perplexity)
+                with open(os.path.join(self.output_dir, 'history.json'), 'w') as f:
+                    json.dump(self.history, f)
+
+
             self.save()
-            if plot is not None:
-                plot(self)
+            self.plot()
+            # if plot is not None:
+            #     plot(self)
         print("Finish training for {} epochs".format(num_epochs))            
             
-    def evaluate(self):
+
+    def getCaptions(self, tensor, imgIds):
+        tensor = tensor.squeeze(2)
+        wordsList = tensor.tolist()
+        vocab = arguments['vocabulary_']
+
+
+        for i in range(len(wordsList)):
+            for j in range(len(wordsList[0])):
+                wordsList[i][j] = vocab[wordsList[i][j]]
+
+
+        res = []
+        for id_ in imgIds:
+            res.append({'image_id' : id_})
+
+        for i,cur in enumerate(wordsList):
+            if('caption' not in res[i]):
+                res[i]['caption'] = []
+            for j in range(len(wordsList[i])):
+                res[i]['caption'].append(wordsList[i][j])
+                if(wordsList[i][j] == '<end>'):
+                    break 
+        
+        return res
+
+    def convert(self, captions):
+        d = {}
+        for singleJSON in captions:
+            d[singleJSON['image_id']] = ' '.join(singleJSON['caption'])
+        return d
+
+
+
+    def evaluate(self, mode = 'val', generate = False):
         """Evaluates the experiment, i.e., forward propagates the validation set
         through the network and returns the statistics computed by the stats
         manager.
@@ -279,22 +384,64 @@ class Experiment(object):
         self.encoder.eval()
         self.decoder.eval()
         device = self.device
+        loaderToRun = self.val_loader
+        if(mode == 'test'):
+            loaderToRun = self.test_loader
+        self.generatedCaptions = []
         with torch.no_grad():
-            for idx, (images, captions, lengths) in enumerate(self.val_loader):
+            for idx, (images, captions, lengths, imgIds) in enumerate(loaderToRun):
 #                 if(idx > 50): #only for testing comment out for anything else
 #                     break
                 
                 images = images.to(device)
                 captions = captions.to(device)
+                #print(captions.size())
                 targets = pack_padded_sequence(captions, lengths, batch_first=True)[0]
                 
                 imageFeatures = self.encoder.forward(images)
-                decoderOutputs = self.decoder.forward(imageFeatures, captions, lengths)
-                
+                predictedWords, decoderOutputs = self.decoder.forwardEval(imageFeatures, t=3, mode='stochastic')
+
+                #print(decoderOutputs.size())
+                decoderOutputs = pack_padded_sequence(decoderOutputs, lengths, batch_first=True)[0]
+
+                #print((decoderOutputs.size(), targets.size()))
+                #sys.exit()
+
                 loss = self.criterion(decoderOutputs, targets) ##Need to figure out
-                self.stats_manager.accumulate(loss.item())
+                perplexity = torch.exp(loss)
+                self.stats_manager.accumulate(loss.item(), list(images.size())[0])
+                if(generate):
+                    generatedCaptions = self.getCaptions(predictedWords, imgIds)
+                    self.generatedCaptions += generatedCaptions
                 #print("Val loss for batch",(idx, loss.item()))
 
         self.encoder.train()
         self.decoder.train()
-        return self.stats_manager.summarize()
+
+        if(generate):
+            with open(os.path.join(self.output_dir, mode + '_captions.json'), 'w') as f:
+                json.dump(self.generatedCaptions, f)
+            generatedCaptions = sorted(generatedCaptions, key=lambda k: k['image_id'])[:5]
+            currentCaptions = self.convert(generatedCaptions)
+
+            try:
+                with open(os.path.join(self.output_dir, mode + '_examples.json')) as f:
+                    previousCaptions = json.load(f)
+                for k in previousCaptions:
+                    previousCaptions[k].append(currentCaptions[int(k)])
+                with open(os.path.join(self.output_dir, mode + '_examples.json'), 'w') as f:
+                    json.dump(previousCaptions, f)                
+            except:
+                print('failed to load previous')
+                newCaptions = {}
+                for k in currentCaptions:
+                    newCaptions[k] = [currentCaptions[k]]
+                with open(os.path.join(self.output_dir, mode + '_examples.json'), 'w') as f:
+                    json.dump(newCaptions, f)                
+
+
+            bleu1, bleu4 = evaluate_captions(arguments[mode+'_json_path'], os.path.join(self.output_dir, mode + '_captions.json'))
+            self.history[mode]['bleu1'].append(bleu1)
+            self.history[mode]['bleu4'].append(bleu4)
+
+        return self.stats_manager.summarize(), perplexity.item()

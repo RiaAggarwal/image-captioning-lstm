@@ -47,13 +47,8 @@ params = list(list(encoder.parameters()) + list(decoder.parameters()))
 # In[7]:
 
 
-#optimizer = torch.optim.SGD(params, lr=arguments['learning_rate'])
 
-# Observe that all parameters are being optimized
-optimizer = torch.optim.Adam(params, lr=args['learning_rate'],betas=(args['beta'], 0.999))
-
-# Decay LR by a factor of 0.1 every 7 epochs
-exp_lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=7, gamma=0.1)
+optimizer = torch.optim.Adam(params, lr=arguments['learning_rate'])
 
 
 # In[8]:
@@ -66,13 +61,14 @@ stats_manager = nt.StatsManager()
 
 
 exp1 = nt.Experiment(encoder, decoder, device, criterion, optimizer, stats_manager, 
-                     output_dir="test_3", perform_validation_during_training=True)
+                     output_dir=arguments['model_path'], perform_validation_during_training=True)
 
 
 # In[10]:
 
 
-exp1.run(num_epochs=args["epochs"])
+
+exp1.run(num_epochs=arguments['epochs'])
 
 
 # In[ ]:

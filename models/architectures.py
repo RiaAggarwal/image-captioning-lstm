@@ -6,7 +6,7 @@ import torch.nn.functional as F
 from torch.utils.data import WeightedRandomSampler
 
 
-resNetComplete = pretrained.resnext50_32x4d(pretrained=True)
+#resNetComplete = pretrained.resnext50_32x4d(pretrained=True)
 
 class EncoderCNN(nn.Module):
 	def __init__(self, output_size):
@@ -24,7 +24,7 @@ class EncoderCNN(nn.Module):
 		return outputFeatures
 
 class DecoderLSTM(nn.Module):
-	def __init__(self, input_size, hidden_size, vocab_size, num_layers, max_sentence_length = 20):
+	def __init__(self, input_size, hidden_size, vocab_size, num_layers, max_sentence_length = 100):
 		super(DecoderLSTM, self).__init__()
 		self.lstm = nn.LSTM(input_size, hidden_size, num_layers, batch_first=True)
 		self.outputLayer = nn.Linear(hidden_size, vocab_size)
@@ -35,32 +35,62 @@ class DecoderLSTM(nn.Module):
 		wordEmbeddings = self.embeddingLayer(captions)
 		wordEmbeddings = torch.cat((encoder_outputs.unsqueeze(1), wordEmbeddings), 1)
 		hiddenStates, _ = self.lstm(torch.nn.utils.rnn.pack_padded_sequence(wordEmbeddings, lengths, batch_first=True))
+		#print(hiddenStates[0].shape)
 		vocabScores = self.outputLayer(hiddenStates[0])
 		return vocabScores
 
-	def generate(self, features, states=None):
-		word_ids = []
+	def forwardEval(self, features, states=None, mode='deterministic',t=1):
 		features = features.unsqueeze(1)
+		all_words = []
+		all_outputs = []
 		for i in range(self.maxSentenceLength):
 			hiddens, states = self.lstm(features, states)
-			outputs = self.outputLayer(hiddens.squeeze(1))
-			_ , predicted = outputs.max(1)
-			word_ids.append(predicted)
-			inputs = self.embeddingLayer(predicted)
-			inputs = inputs.unsqueeze(1)
-		word_ids = torch.stack(word_ids, 1)
-		return word_ids
+			curOutputs = self.outputLayer(hiddens.squeeze(1))
+			#print('cur outputs : ', curOutputs.size())
+			all_outputs.append(curOutputs)
+			if(mode == 'stochastic'):
+				soft_out = F.softmax(curOutputs/t, dim=1)
+				i_words = WeightedRandomSampler(torch.squeeze(soft_out), 1)
+				i_words = torch.multinomial(soft_out, 1)
+			else:
+				_,predicted = curOutputs.max(1)
+				i_words = predicted
+			#print(i_words.size())
+			inputs = self.embeddingLayer(i_words)
+			features = inputs
+			all_words.append(i_words)
+		all_words = torch.stack(all_words, 1)
+		all_outputs = torch.stack(all_outputs, 1)
+		#print('final outputs : ', all_outputs.size())
+		return all_words, all_outputs
+
+
+
+
+
+	# def generate(self, features, states=None):
+	# 	word_ids = []
+	# 	features = features.unsqueeze(1)
+	# 	for i in range(self.maxSentenceLength):
+	# 		hiddens, states = self.lstm(features, states)
+	# 		outputs = self.outputLayer(hiddens.squeeze(1))
+	# 		_ , predicted = outputs.max(1)
+	# 		word_ids.append(predicted)
+	# 		inputs = self.embeddingLayer(predicted)
+	# 		inputs = inputs.unsqueeze(1)
+	# 	word_ids = torch.stack(word_ids, 1)
+	# 	return word_ids
     
-	def generate_captions(self, logits, mode='deterministic', t=1):
-		if (mode == 'deterministic'):
-			_, predicted = logits.max(1)
-			word_id = predicted
+	# def generate_captions(self, logits, mode='deterministic', t=1):
+	# 	if (mode == 'deterministic'):
+	# 		_, predicted = logits.max(1)
+	# 		word_id = predicted
         
-		elif(mode == 'stochastic'):
-			soft_out = F.softmax(logits/t, dim=1)
-			word_id = WeightedRandomSampler(torch.squeeze(soft_out), 1) #get only one sample. change it to get more samples
+	# 	elif(mode == 'stochastic'):
+	# 		soft_out = F.softmax(logits/t, dim=1)
+	# 		word_id = WeightedRandomSampler(torch.squeeze(soft_out), 1) #get only one sample. change it to get more samples
         
-		return word_id
+	# 	return word_id
             
             
             

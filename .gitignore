@@ -1,5 +1,7 @@
 *ipynb
 .ipynb_checkpoints/*
 data/*
+*log
+results/*
+typescript
 __pycache__
-test_3

@@ -30,24 +30,29 @@ test_ids = get_ids('./data/test_ids.txt')
 
 from models.architectures import EncoderCNN, DecoderLSTM
 
-vocab = ''
-vocab_path = './vocab/word_to_idx.p'
-with open(vocab_path, 'rb') as f:
-	vocab = pickle.load(f)
+vocab1 = ''
+vocab_path1 = './vocab/word_to_idx.p'
+with open(vocab_path1, 'rb') as f:
+	vocab1 = pickle.load(f)
+
+vocab2 = ''
+vocab_path2 = './vocab/idx_to_word.p'
+with open(vocab_path2, 'rb') as f:
+	vocab2 = pickle.load(f)
 
 args = {
 
 	'epochs' : 1000,
 
-	'batch_size' : 2,
+	'batch_size' : 64,
 
 	'num_workers' : 4,
 
-	'model_path' : './results/',
+	'model_path' : './results/first',
 
-	'embed_size' : 300,
+	'embed_size' : 100,
 
-	'hidden_size' : 10000,
+	'hidden_size' : 200,
 
 	'val_step' : 3,
 
@@ -55,9 +60,11 @@ args = {
 
 	'decoder' : DecoderLSTM,
 
-	'vocabulary' : vocab,
+	'vocabulary' : vocab1,
+    
+    'vocabulary_' : vocab2,
 
-	'vocab_size' : len(vocab),
+	'vocab_size' : len(vocab1),
 
 	'num_layers' : 1,
 
@@ -81,6 +88,8 @@ args = {
 
 	'transforms' : transforms_,
 
-	'root' : '/datasets/COCO-2015/train2014/'
+	'root' : '/datasets/COCO-2015/train2014/',
+    
+    'root_' : '/datasets/COCO-2015/val2014/'
 
 }
