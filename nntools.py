@@ -4,7 +4,7 @@ from torch import nn
 import torch.utils.data as td
 from abc import ABC, abstractmethod
 from data_loader import get_loader
-from config import arguments
+from config import args
 from torch.nn.utils.rnn import pack_padded_sequence
 from models.architectures import *
 from matplotlib import pyplot as plt

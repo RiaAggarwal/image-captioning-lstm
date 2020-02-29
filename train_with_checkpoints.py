@@ -13,7 +13,7 @@ import nntools as nt
 from models.architectures import *
 import torch
 import torch.nn as nn
-from config import arguments
+from config import args
 import os
 from data_loader import get_loader
 from torch.nn.utils.rnn import pack_padded_sequence
@@ -28,14 +28,14 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 # In[4]:
 
 
-encoder = arguments['encoder'](arguments['embed_size']).to(device)
-decoder = arguments['decoder'](arguments['embed_size'], arguments['hidden_size'], arguments['vocab_size'], arguments['num_layers']).to(device)
+encoder = args['encoder'](args['embed_size']).to(device)
+decoder = args['decoder'](args['embed_size'], args['hidden_size'], args['vocab_size'], args['num_layers']).to(device)
 
 
 # In[5]:
 
 
-criterion = arguments['loss_criterion']
+criterion = args['loss_criterion']
 
 
 # In[6]:
@@ -45,6 +45,7 @@ params = list(list(encoder.parameters()) + list(decoder.parameters()))
 
 
 # In[7]:
+
 
 
 optimizer = torch.optim.Adam(params, lr=arguments['learning_rate'])
@@ -64,6 +65,7 @@ exp1 = nt.Experiment(encoder, decoder, device, criterion, optimizer, stats_manag
 
 
 # In[10]:
+
 
 
 exp1.run(num_epochs=arguments['epochs'])
