@@ -48,7 +48,7 @@ params = list(list(encoder.parameters()) + list(decoder.parameters()))
 
 
 
-optimizer = torch.optim.Adam(params, lr=arguments['learning_rate'])
+optimizer = torch.optim.Adam(params, lr=args['learning_rate'])
 
 
 # In[8]:
@@ -61,14 +61,14 @@ stats_manager = nt.StatsManager()
 
 
 exp1 = nt.Experiment(encoder, decoder, device, criterion, optimizer, stats_manager, 
-                     output_dir=arguments['model_path'], perform_validation_during_training=True)
+                     output_dir=args['model_path'], perform_validation_during_training=True)
 
 
 # In[10]:
 
 
 
-exp1.run(num_epochs=arguments['epochs'])
+exp1.run(num_epochs=args['epochs'])
 
 
 # In[ ]:

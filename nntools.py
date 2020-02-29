@@ -108,9 +108,9 @@ class Experiment(object):
                  output_dir=None, perform_validation_during_training=False):
 
         # Define data loaders
-        train_loader = get_loader(arguments['root'], arguments['train_json_path'], arguments['train_image_ids'],arguments['vocabulary'], arguments['transforms'], arguments['batch_size'], True, arguments['num_workers'])
-        val_loader = get_loader(arguments['root'], arguments['train_json_path'], arguments['val_image_ids'], arguments['vocabulary'], arguments['transforms'], arguments['batch_size'], False, arguments['num_workers'])
-        test_loader = get_loader(arguments['root_'], arguments['test_json_path'], arguments['test_image_ids'], arguments['vocabulary'], arguments['transforms'], arguments['batch_size'], False, arguments['num_workers'])
+        train_loader = get_loader(args['root'], args['train_json_path'], args['train_image_ids'],args['vocabulary'], args['transforms'], args['batch_size'], True, args['num_workers'])
+        val_loader = get_loader(args['root'], args['train_json_path'], args['val_image_ids'], args['vocabulary'], args['transforms'], args['batch_size'], False, args['num_workers'])
+        test_loader = get_loader(args['root_'], args['test_json_path'], args['test_image_ids'], args['vocabulary'], args['transforms'], args['batch_size'], False, args['num_workers'])
         # Initialize history
         history = {
             'losses' : [],
@@ -345,7 +345,7 @@ class Experiment(object):
     def getCaptions(self, tensor, imgIds):
         tensor = tensor.squeeze(2)
         wordsList = tensor.tolist()
-        vocab = arguments['vocabulary_']
+        vocab = args['vocabulary_']
 
 
         for i in range(len(wordsList)):
@@ -440,7 +440,7 @@ class Experiment(object):
                     json.dump(newCaptions, f)                
 
 
-            bleu1, bleu4 = evaluate_captions(arguments[mode+'_json_path'], os.path.join(self.output_dir, mode + '_captions.json'))
+            bleu1, bleu4 = evaluate_captions(args[mode+'_json_path'], os.path.join(self.output_dir, mode + '_captions.json'))
             self.history[mode]['bleu1'].append(bleu1)
             self.history[mode]['bleu4'].append(bleu4)
 
