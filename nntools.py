@@ -399,7 +399,7 @@ class Experiment(object):
                 targets = pack_padded_sequence(captions, lengths, batch_first=True)[0]
                 
                 imageFeatures = self.encoder.forward(images)
-                predictedWords, decoderOutputs = self.decoder.forwardEval(imageFeatures, t=3, mode='stochastic')
+                predictedWords, decoderOutputs = self.decoder.forwardEval(imageFeatures, t=args['t'], mode= args['stochastic'])
 
                 #print(decoderOutputs.size())
                 decoderOutputs = pack_padded_sequence(decoderOutputs, lengths, batch_first=True)[0]

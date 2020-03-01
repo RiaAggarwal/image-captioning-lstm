@@ -17,8 +17,9 @@ def get_ids(file_path):
 
 from torchvision import transforms
 
-size = (224,224) # refer to data_loader_captions notebook
+size = (224) # refer to data_loader_captions notebook, standard for Imagenet
 transforms_ = transforms.Compose([
+                    transforms.Resize(256)
                     transforms.CenterCrop(size),
                     transforms.RandomHorizontalFlip(),
                     transforms.ToTensor(),
@@ -42,7 +43,7 @@ with open(vocab_path2, 'rb') as f:
 
 args = {
 
-	'epochs' : 1000,
+	'epochs' : 10,
 
 	'batch_size' : 64,
 
@@ -73,6 +74,10 @@ args = {
 	'learning_rate' : 0.001,
     
     'beta' : 0.9,
+    
+    't' : 0.3,
+    
+    'stochastic' :  False,
 
 	'train_image_ids' : train_ids,
 
