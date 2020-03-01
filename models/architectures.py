@@ -4,6 +4,7 @@ import torchvision.models as pretrained
 import numpy as np
 import torch.nn.functional as F
 from torch.utils.data import WeightedRandomSampler
+from pretrained_glove import create_embedding
 
 
 #resNetComplete = pretrained.resnext50_32x4d(pretrained=True)
@@ -11,9 +12,11 @@ from torch.utils.data import WeightedRandomSampler
 class EncoderCNN(nn.Module):
 	def __init__(self, output_size):
 		super(EncoderCNN, self).__init__()
-		resNetComplete = pretrained.resnext50_32x4d(pretrained=True)
+		resNetComplete = pretrained.resnet50(pretrained=True)
 		subModules = list(resNetComplete.children())[:-1]
 		self.resNetToUse = nn.Sequential(*subModules)
+		for param in resNetComplete.parameters():
+			param.requires_grad = False
 		self.lastLayer = nn.Linear(resNetComplete.fc.in_features, output_size)
 		self.batchNorm = nn.BatchNorm1d(output_size)
 
@@ -24,11 +27,16 @@ class EncoderCNN(nn.Module):
 		return outputFeatures
 
 class DecoderLSTM(nn.Module):
-	def __init__(self, input_size, hidden_size, vocab_size, num_layers, max_sentence_length = 100):
+	def __init__(self, input_size, hidden_size, vocab_size, num_layers, target_vocab, glove_path, max_sentence_length = 100, is_pretrained = False):
 		super(DecoderLSTM, self).__init__()
 		self.lstm = nn.LSTM(input_size, hidden_size, num_layers, batch_first=True)
 		self.outputLayer = nn.Linear(hidden_size, vocab_size)
 		self.embeddingLayer = nn.Embedding(vocab_size, input_size)
+
+		if(is_pretrained):
+			weights_matrix = create_embedding(input_size, target_vocab, glove_path)
+			self.embeddingLayer = nn.Embedding.from_pretrained(torch.Tensor(weights_matrix))
+
 		self.maxSentenceLength = max_sentence_length
 
 	def forward(self, encoder_outputs, captions, lengths):
@@ -61,9 +69,55 @@ class DecoderLSTM(nn.Module):
 			all_words.append(i_words)
 		all_words = torch.stack(all_words, 1)
 		all_outputs = torch.stack(all_outputs, 1)
-		#print('final outputs : ', all_outputs.size())
 		return all_words, all_outputs
 
+class DecoderRNN(nn.Module):
+	def __init__(self, input_size, hidden_size, vocab_size, num_layers, target_vocab, glove_path, max_sentence_length = 100, is_pretrained = False):
+		super(DecoderRNN, self).__init__()
+		self.rnn = nn.RNN(input_size, hidden_size, num_layers, batch_first=True)
+		self.outputLayer = nn.Linear(hidden_size, vocab_size)
+		self.embeddingLayer = nn.Embedding(vocab_size, input_size)
+
+		if(is_pretrained):
+			weights_matrix = create_embedding(input_size, target_vocab, glove_path)
+			self.embeddingLayer = nn.Embedding.from_pretrained(torch.Tensor(weights_matrix))
+			# self.embeddingLayer.load_state_dict({'weight' : weights_matrix})
+			# self.embeddingLayer.weight.requires_grad = False
+
+		self.maxSentenceLength = max_sentence_length
+
+	def forward(self, encoder_outputs, captions, lengths):
+		wordEmbeddings = self.embeddingLayer(captions)
+		wordEmbeddings = torch.cat((encoder_outputs.unsqueeze(1), wordEmbeddings), 1)
+		hiddenStates, _ = self.rnn(torch.nn.utils.rnn.pack_padded_sequence(wordEmbeddings, lengths, batch_first=True))
+		#print(hiddenStates[0].shape)
+		vocabScores = self.outputLayer(hiddenStates[0])
+		return vocabScores
+
+	def forwardEval(self, features, states=None, mode='deterministic',t=1):
+		features = features.unsqueeze(1)
+		all_words = []
+		all_outputs = []
+		for i in range(self.maxSentenceLength):
+			hiddens, states = self.rnn(features, states)
+			curOutputs = self.outputLayer(hiddens.squeeze(1))
+			#print('cur outputs : ', curOutputs.size())
+			all_outputs.append(curOutputs)
+			if(mode == 'stochastic'):
+				soft_out = F.softmax(curOutputs/t, dim=1)
+				i_words = WeightedRandomSampler(torch.squeeze(soft_out), 1)
+				i_words = torch.multinomial(soft_out, 1)
+			else:
+				_,predicted = curOutputs.max(1)
+				i_words = predicted
+			#print(i_words.size())
+			inputs = self.embeddingLayer(i_words)
+			features = inputs
+			all_words.append(i_words)
+		all_words = torch.stack(all_words, 1)
+		all_outputs = torch.stack(all_outputs, 1)
+		#print('final outputs : ', all_outputs.size())
+		return all_words, all_outputs
 
 
 

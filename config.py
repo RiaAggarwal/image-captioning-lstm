@@ -19,6 +19,7 @@ from torchvision import transforms
 
 size = (224,224) # refer to data_loader_captions notebook
 transforms_ = transforms.Compose([
+					transforms.Resize((256,256)),
                     transforms.CenterCrop(size),
                     transforms.RandomHorizontalFlip(),
                     transforms.ToTensor(),
@@ -28,7 +29,7 @@ train_ids = get_ids('./data/train_ids.txt')
 val_ids = get_ids('./data/val_ids.txt')
 test_ids = get_ids('./data/test_ids.txt')
 
-from models.architectures import EncoderCNN, DecoderLSTM
+from models.architectures import EncoderCNN, DecoderLSTM, DecoderRNN
 
 vocab1 = ''
 vocab_path1 = './vocab/word_to_idx.p'
@@ -58,7 +59,7 @@ args = {
 
 	'encoder' : EncoderCNN,
 
-	'decoder' : DecoderLSTM,
+	'decoder' : DecoderRNN,
 
 	'vocabulary' : vocab1,
     
@@ -90,6 +91,16 @@ args = {
 
 	'root' : '/datasets/COCO-2015/train2014/',
     
-    'root_' : '/datasets/COCO-2015/val2014/'
+    'root_' : '/datasets/COCO-2015/val2014/',
+
+    'generate_mode' : 'stochastic',
+
+    'temperature' : 3,
+
+    'glove_path' : './data/glove',
+
+    'max_sentence_length' : 100,
+
+    'is_pretrained' : True
 
 }

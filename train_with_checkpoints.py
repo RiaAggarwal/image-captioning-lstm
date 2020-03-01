@@ -29,7 +29,7 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 
 encoder = args['encoder'](args['embed_size']).to(device)
-decoder = args['decoder'](args['embed_size'], args['hidden_size'], args['vocab_size'], args['num_layers']).to(device)
+decoder = args['decoder'](args['embed_size'], args['hidden_size'], args['vocab_size'], args['num_layers'], list(args['vocabulary'].keys()), args['glove_path'], args.get('max_sentence_length', 100), args.get('is_pretrained', True)).to(device)
 
 
 # In[5]:
