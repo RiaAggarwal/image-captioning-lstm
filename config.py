@@ -31,6 +31,8 @@ test_ids = get_ids('./data/test_ids.txt')
 
 from models.architectures import EncoderCNN, DecoderLSTM
 
+rnn = nn.LSTM
+
 vocab1 = ''
 vocab_path1 = './vocab/word_to_idx.p'
 with open(vocab_path1, 'rb') as f:
@@ -78,6 +80,8 @@ args = {
     't' : 0.3,
     
     'stochastic' :  False,
+    
+    'rnn' : rnn,
 
 	'train_image_ids' : train_ids,
 

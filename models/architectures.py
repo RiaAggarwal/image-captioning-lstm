@@ -24,9 +24,9 @@ class EncoderCNN(nn.Module):
 		return outputFeatures
 
 class DecoderLSTM(nn.Module):
-	def __init__(self, input_size, hidden_size, vocab_size, num_layers, max_sentence_length = 100):
+	def __init__(self, input_size, hidden_size, vocab_size, num_layers, rnn = nn.LSTM, max_sentence_length = 100):
 		super(DecoderLSTM, self).__init__()
-		self.lstm = nn.LSTM(input_size, hidden_size, num_layers, batch_first=True)
+		self.lstm = rnn(input_size, hidden_size, num_layers, batch_first=True)
 		self.outputLayer = nn.Linear(hidden_size, vocab_size)
 		self.embeddingLayer = nn.Embedding(vocab_size, input_size)
 		self.maxSentenceLength = max_sentence_length
