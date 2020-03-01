@@ -19,7 +19,7 @@ from torchvision import transforms
 
 size = (224) # refer to data_loader_captions notebook, standard for Imagenet
 transforms_ = transforms.Compose([
-                    transforms.Resize(256)
+                    transforms.Resize(256),
                     transforms.CenterCrop(size),
                     transforms.RandomHorizontalFlip(),
                     transforms.ToTensor(),
@@ -51,7 +51,7 @@ args = {
 
 	'num_workers' : 4,
 
-	'model_path' : './results/first',
+	'model_path' : './results/first_1',
 
 	'embed_size' : 100,
 
@@ -73,7 +73,7 @@ args = {
 
 	'loss_criterion' : nn.CrossEntropyLoss(),
 
-	'learning_rate' : 0.001,
+	'learning_rate' : 1e-4,
     
     'beta' : 0.9,
     

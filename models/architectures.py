@@ -15,7 +15,7 @@ class EncoderCNN(nn.Module):
 		subModules = list(resNetComplete.children())[:-1]
 		self.resNetToUse = nn.Sequential(*subModules)
         
-		for param in resNetcomplete.parameters():
+		for param in resNetComplete.parameters():
 			param.requires_grad = False
         
         
