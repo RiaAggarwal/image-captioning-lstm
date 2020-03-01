@@ -51,9 +51,9 @@ args = {
 
 	'model_path' : './results/first',
 
-	'embed_size' : 100,
+	'embed_size' : 300,
 
-	'hidden_size' : 200,
+	'hidden_size' : 750,
 
 	'val_step' : 3,
 
@@ -71,7 +71,7 @@ args = {
 
 	'loss_criterion' : nn.CrossEntropyLoss(),
 
-	'learning_rate' : 0.001,
+	'learning_rate' : 5e-3,
     
     'beta' : 0.9,
 
@@ -93,7 +93,7 @@ args = {
     
     'root_' : '/datasets/COCO-2015/val2014/',
 
-    'generate_mode' : 'stochastic',
+    'generate_mode' : 'deterministic',
 
     'temperature' : 3,
 

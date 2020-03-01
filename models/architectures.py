@@ -5,6 +5,7 @@ import numpy as np
 import torch.nn.functional as F
 from torch.utils.data import WeightedRandomSampler
 from pretrained_glove import create_embedding
+import sys
 
 
 #resNetComplete = pretrained.resnext50_32x4d(pretrained=True)
@@ -62,7 +63,7 @@ class DecoderLSTM(nn.Module):
 				i_words = torch.multinomial(soft_out, 1)
 			else:
 				_,predicted = curOutputs.max(1)
-				i_words = predicted
+				i_words = predicted.unsqueeze(1)
 			#print(i_words.size())
 			inputs = self.embeddingLayer(i_words)
 			features = inputs
@@ -109,7 +110,7 @@ class DecoderRNN(nn.Module):
 				i_words = torch.multinomial(soft_out, 1)
 			else:
 				_,predicted = curOutputs.max(1)
-				i_words = predicted
+				i_words = predicted.unsqueeze(1)
 			#print(i_words.size())
 			inputs = self.embeddingLayer(i_words)
 			features = inputs
