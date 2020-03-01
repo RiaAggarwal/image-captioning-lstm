@@ -11,9 +11,14 @@ from torch.utils.data import WeightedRandomSampler
 class EncoderCNN(nn.Module):
 	def __init__(self, output_size):
 		super(EncoderCNN, self).__init__()
-		resNetComplete = pretrained.resnext50_32x4d(pretrained=True)
+		resNetComplete = pretrained.resnet50(pretrained=True)
 		subModules = list(resNetComplete.children())[:-1]
 		self.resNetToUse = nn.Sequential(*subModules)
+        
+		for param in resNetcomplete.parameters():
+			param.requires_grad = False
+        
+        
 		self.lastLayer = nn.Linear(resNetComplete.fc.in_features, output_size)
 		self.batchNorm = nn.BatchNorm1d(output_size)
 
