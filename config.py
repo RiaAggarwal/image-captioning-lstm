@@ -19,7 +19,7 @@ from torchvision import transforms
 
 size = (224,224) # refer to data_loader_captions notebook
 transforms_ = transforms.Compose([
-					transforms.Resize((256,256)),
+					transforms.Resize(256),
                     transforms.CenterCrop(size),
                     transforms.RandomHorizontalFlip(),
                     transforms.ToTensor(),
@@ -47,9 +47,9 @@ args = {
 
 	'batch_size' : 64,
 
-	'num_workers' : 4,
+	'num_workers' : 32,
 
-	'model_path' : './results/first',
+	'model_path' : './results/mega6',
 
 	'embed_size' : 300,
 
@@ -71,7 +71,7 @@ args = {
 
 	'loss_criterion' : nn.CrossEntropyLoss(),
 
-	'learning_rate' : 5e-3,
+	'learning_rate' : 1e-4,
     
     'beta' : 0.9,
 
@@ -101,6 +101,6 @@ args = {
 
     'max_sentence_length' : 100,
 
-    'is_pretrained' : True
+    'is_pretrained' : False
 
 }

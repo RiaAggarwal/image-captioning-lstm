@@ -375,7 +375,7 @@ class Experiment(object):
 
 
 
-    def evaluate(self, mode = 'val', generate = False):
+    def evaluate(self, mode = 'val', generate = False, generate_mode = args['generate_mode'], temperature=1):
         """Evaluates the experiment, i.e., forward propagates the validation set
         through the network and returns the statistics computed by the stats
         manager.
@@ -388,11 +388,13 @@ class Experiment(object):
         if(mode == 'test'):
             loaderToRun = self.test_loader
         self.generatedCaptions = []
+        name_ = generate_mode + str(temperature)
+        print((generate_mode,temperature))
         with torch.no_grad():
             for idx, (images, captions, lengths, imgIds) in enumerate(loaderToRun):
 #                 if(idx > 50): #only for testing comment out for anything else
 #                     break
-                
+                print(idx)
                 images = images.to(device)
                 captions = captions.to(device)
                 #print(captions.size())
@@ -400,7 +402,7 @@ class Experiment(object):
                 
                 imageFeatures = self.encoder.forward(images)
                 if(mode == 'test'):
-                    predictedWords, decoderOutputs = self.decoder.forwardEval(imageFeatures, t=args['temperature'], mode=args['generate_mode'])
+                    predictedWords, decoderOutputs = self.decoder.forwardEval(imageFeatures, t=temperature, mode=generate_mode)
                     decoderOutputs = pack_padded_sequence(decoderOutputs, lengths, batch_first=True)[0]
                 else:
                     decoderOutputs = self.decoder.forward(imageFeatures, captions, lengths)
@@ -422,29 +424,30 @@ class Experiment(object):
         self.decoder.train()
 
         if(generate):
-            with open(os.path.join(self.output_dir, mode + '_captions.json'), 'w') as f:
+            with open(os.path.join(self.output_dir, mode + name_ + '_captions.json'), 'w') as f:
                 json.dump(self.generatedCaptions, f)
             generatedCaptions = sorted(generatedCaptions, key=lambda k: k['image_id'])[:5]
             currentCaptions = self.convert(generatedCaptions)
 
             try:
-                with open(os.path.join(self.output_dir, mode + '_examples.json')) as f:
+                with open(os.path.join(self.output_dir, mode + name_ + '_examples.json')) as f:
                     previousCaptions = json.load(f)
                 for k in previousCaptions:
                     previousCaptions[k].append(currentCaptions[int(k)])
-                with open(os.path.join(self.output_dir, mode + '_examples.json'), 'w') as f:
+                with open(os.path.join(self.output_dir, mode + name_ + '_examples.json'), 'w') as f:
                     json.dump(previousCaptions, f)                
             except:
                 print('failed to load previous')
                 newCaptions = {}
                 for k in currentCaptions:
                     newCaptions[k] = [currentCaptions[k]]
-                with open(os.path.join(self.output_dir, mode + '_examples.json'), 'w') as f:
+                with open(os.path.join(self.output_dir, mode + name_ + '_examples.json'), 'w') as f:
                     json.dump(newCaptions, f)                
 
 
-            bleu1, bleu4 = evaluate_captions(args[mode+'_json_path'], os.path.join(self.output_dir, mode + '_captions.json'))
+            bleu1, bleu4 = evaluate_captions(args[mode+'_json_path'], os.path.join(self.output_dir, mode + name_ + '_captions.json'))
+            print((bleu1, bleu4))
             self.history[mode]['bleu1'].append(bleu1)
             self.history[mode]['bleu4'].append(bleu4)
-
+            print('')
         return self.stats_manager.summarize(), perplexity.item()

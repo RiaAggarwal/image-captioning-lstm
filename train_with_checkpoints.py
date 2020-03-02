@@ -65,11 +65,49 @@ exp1 = nt.Experiment(encoder, decoder, device, criterion, optimizer, stats_manag
 
 
 # In[10]:
-
+import time
 
 
 exp1.run(num_epochs=args['epochs'])
+# exp1.load_bestmodel()
+# exp1.encoder.eval()
+# exp1.decoder.eval()
 
+# a,b  = exp1.evaluate(mode='test',generate=False,generate_mode='deterministic',temperature=1)
+# print((a,b))
+#a,b  = exp1.evaluate(mode='test',generate=True,generate_mode='stochastic',temperature=0.2)
+# time.sleep(30)
+
+
+# exp1.load_bestmodel()
+# exp1.encoder.eval()
+# exp1.decoder.eval()
+# exp1.evaluate(mode='test',generate=True,generate_mode='stochastic',temperature=0.1)
+# time.sleep(30)
+
+# exp1.load_bestmodel()
+# exp1.encoder.eval()
+# exp1.decoder.eval()
+# exp1.evaluate(mode='test',generate=True,generate_mode='stochastic',temperature=0.5)
+# time.sleep(30)
+
+# exp1.load_bestmodel()
+# exp1.encoder.eval()
+# exp1.decoder.eval()
+# exp1.evaluate(mode='test',generate=True,generate_mode='stochastic',temperature=1)
+# time.sleep(30)
+
+# exp1.load_bestmodel()
+# exp1.encoder.eval()
+# exp1.decoder.eval()
+# exp1.evaluate(mode='test',generate=True,generate_mode='stochastic',temperature=1.5)
+# time.sleep(30)
+
+# exp1.load_bestmodel()
+# exp1.encoder.eval()
+# exp1.decoder.eval()
+# exp1.evaluate(mode='test',generate=True,generate_mode='stochastic',temperature=2)
+# time.sleep(30)
 
 # In[ ]:
 
